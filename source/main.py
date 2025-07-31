@@ -1,7 +1,7 @@
 import sys
 import os
 
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QGridLayout
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QGridLayout, QCheckBox
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QIcon
 
@@ -19,6 +19,8 @@ class MonitorGieldowy(QWidget):
 
         appIcon_path = os.path.join(project_root, "Icons", "appIcon.ico")
         appIcon = QIcon(appIcon_path)
+        
+        self._original_flags = self.windowFlags()
 
         self.setWindowIcon(appIcon)
         self.setWindowTitle("Market monitor")
@@ -80,7 +82,15 @@ class MonitorGieldowy(QWidget):
                 print("Empty or already exist")
         except ValueError:
             print("Please enter symbol and alias (e.g., CDR.WA CDProjekt)")
-    
+
+    def _toggleAlwaysOnTop(self, checked):
+        if checked:
+            self.setWindowFlags(self._original_flags | Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(self._original_flags)
+        
+        self.show()
+
     def _updateCountdown(self):
         self.countdown_counter -= 1
         if self.countdown_counter < 0:
@@ -108,7 +118,7 @@ class MonitorGieldowy(QWidget):
                 diff = data['currentPrice'] - data['lastClose']
                 percent = ((data['currentPrice'] / data["lastClose"]) * 100 - 100)
                 
-                label_text = f"<b>{alias} ({symbol})</b>: {data['currentPrice']} {data.get('currency', 'no data')} | {diff:.2f} | {percent:.2f} %"
+                label_text = f"<b>{alias}({symbol})</b>: {data['currentPrice']} {data.get('currency', 'no data')} | {diff:.2f} | {percent:.2f} %"
                 label = QLabel(label_text)
                 
                 if data['lastClose'] is not None:
@@ -133,12 +143,19 @@ class MonitorGieldowy(QWidget):
         mainLayout = QVBoxLayout()
         mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        inputLayout = QVBoxLayout()
         self.symbolInput = QLineEdit()
-        mainLayout.addWidget(self.symbolInput)
-
+        inputLayout.addWidget(self.symbolInput)
+        
         self.button = QPushButton("Add symbol")
         self.button.clicked.connect(self._getSymbolFromInput)
-        mainLayout.addWidget(self.button)
+        inputLayout.addWidget(self.button)
+
+        self.alwaysOnTop_checkbox = QCheckBox("Always on top")
+        self.alwaysOnTop_checkbox.toggled.connect(self._toggleAlwaysOnTop)
+        inputLayout.addWidget(self.alwaysOnTop_checkbox)
+
+        mainLayout.addLayout(inputLayout)
 
         self.scrollArea = QScrollArea()
         self.scrollArea.setWidgetResizable(True)
