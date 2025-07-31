@@ -72,3 +72,22 @@ pip install PySide6 yfinance
 -   **`symbols.txt`:**
     -   A plain text file where the application stores the stock symbols you've added.
     -   Each symbol is saved on a new line.
+
+### Alias Support for Stock Symbols
+
+The application now allows you to assign custom, more readable names (aliases) to stock symbols. Instead of only seeing the symbol, you can define how it should be displayed.
+
+#### How to Use Aliases
+
+1. In the text input field for adding symbols, type the symbol followed by a space and then the alias (e.g., `CDR.WA CDProjekt`).
+2. Click the **"Add symbol"** button.
+
+The application will remember the alias and will display the data in the format: **`Alias(Symbol): current price | difference | percentage change`**.
+
+**Example:**
+
+After entering `CDR.WA CDProjekt`, the application will display:
+
+`CDProjekt(CDR.WA): 120.50 PLN | +2.30 | +1.95 %`
+
+The alias is saved in the `symbols.txt` file along with the symbol and will be loaded automatically each time you run the application.
