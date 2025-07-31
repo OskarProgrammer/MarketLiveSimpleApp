@@ -1,7 +1,7 @@
 import sys
 import os
 
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QGridLayout, QCheckBox
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QGridLayout, QCheckBox, QHBoxLayout
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QIcon
 
@@ -50,13 +50,16 @@ class MonitorGieldowy(QWidget):
             symbols_file_path = os.path.join(project_root, "symbols.txt")
             with open(symbols_file_path, "r") as file:
                 self.symbolsList = [
-                    line.strip().split(" ") for line in file.readlines()
+                    line.strip().split(" ", 1) for line in file.readlines()
                 ]
         except FileNotFoundError:
             symbols_file_path = os.path.join(project_root, "symbols.txt")
             with open(symbols_file_path, "w") as file:
                 pass
             print("File symbols.txt does not exist. Creating.")
+        except ValueError:
+            print("Error reading symbols file. Please check file format.")
+            self.symbolsList = []
 
     def _getSymbolFromInput(self):
         try:
@@ -82,6 +85,21 @@ class MonitorGieldowy(QWidget):
                 print("Empty or already exist")
         except ValueError:
             print("Please enter symbol and alias (e.g., CDR.WA CDProjekt)")
+
+    def _removeSymbol(self, symbol_to_remove):
+        self.symbolsList = [s for s in self.symbolsList if s[0] != symbol_to_remove]
+        self._saveSymbolsToFile()
+        self._updatePrices()
+
+    def _saveSymbolsToFile(self):
+        try:
+            symbols_file_path = os.path.join(project_root, "symbols.txt")
+            with open(symbols_file_path, "w") as file:
+                for symbol, alias in self.symbolsList:
+                    file.write(f"{symbol} {alias}\n")
+        except Exception as e:
+            print(f"Error during writing to file: {e}")
+
 
     def _toggleAlwaysOnTop(self, checked):
         if checked:
@@ -114,30 +132,48 @@ class MonitorGieldowy(QWidget):
         row = 0
         for symbol, alias in self.symbolsList:
             data = getData(symbol)
+
+            # Create a horizontal layout for the entire item
+            item_layout = QHBoxLayout()
+            
+            # The label should be flexible
+            label = QLabel()
+            label.setWordWrap(True) # Make sure the text wraps if it's too long
+            label.setStyleSheet("font-size: 16pt; font-weight: bold;")
+            
             if data and data.get('currentPrice') is not None:
                 diff = data['currentPrice'] - data['lastClose']
                 percent = ((data['currentPrice'] / data["lastClose"]) * 100 - 100)
                 
                 label_text = f"<b>{alias}({symbol})</b>: {data['currentPrice']} {data.get('currency', 'no data')} | {diff:.2f} | {percent:.2f} %"
-                label = QLabel(label_text)
+                label.setText(label_text)
                 
                 if data['lastClose'] is not None:
                     if data['lastClose'] < data['currentPrice']:
-                        label.setStyleSheet("font-size: 16pt; font-weight: bold; color: green;")
+                        label.setStyleSheet("font-size: 12pt; font-weight: bold; color: green;")
                     elif data['lastClose'] == data['currentPrice']:
-                        label.setStyleSheet("font-size: 16pt; font-weight: bold; color: gray;")
+                        label.setStyleSheet("font-size: 12pt; font-weight: bold; color: gray;")
                     else:
-                        label.setStyleSheet("font-size: 16pt; font-weight: bold; color: red;")
+                        label.setStyleSheet("font-size: 12pt; font-weight: bold; color: red;")
                 else:
-                    label.setStyleSheet("font-size: 16pt; font-weight: bold; color: gray;")
-
-                self.symbolsLayout.addWidget(label, row, 0, 1, 1, Qt.AlignmentFlag.AlignCenter)
-                row += 1
+                    label.setStyleSheet("font-size: 12pt; font-weight: bold; color: gray;")
             else:
-                label = QLabel(f"<b>{alias}({symbol})</b>: No data")
-                label.setStyleSheet("font-size: 16pt; font-weight: bold; color: gray;")
-                self.symbolsLayout.addWidget(label, row, 0, 1, 1, Qt.AlignmentFlag.AlignCenter)
-                row += 1
+                label.setText(f"<b>{alias}({symbol})</b>: No data")
+                label.setStyleSheet("font-size: 12pt; font-weight: bold; color: gray;")
+
+            item_layout.addWidget(label, 1) # Set a stretch factor of 1 for the label
+
+            remove_button = QPushButton("Remove")
+            remove_button.setFixedSize(60, 25)
+            remove_button.clicked.connect(lambda _, s=symbol: self._removeSymbol(s))
+            item_layout.addWidget(remove_button)
+
+            container_widget = QWidget()
+            container_widget.setLayout(item_layout)
+            self.symbolsLayout.addWidget(container_widget, row, 0, 1, 1, Qt.AlignmentFlag.AlignTop)
+            row += 1
+            
+        self.symbolsLayout.setSpacing(10) # Adjust spacing between rows
 
     def createInterface(self):
         mainLayout = QVBoxLayout()
