@@ -47,7 +47,9 @@ class MonitorGieldowy(QWidget):
         try:
             symbols_file_path = os.path.join(project_root, "symbols.txt")
             with open(symbols_file_path, "r") as file:
-                self.symbolsList = [line.strip() for line in file.readlines()]
+                self.symbolsList = [
+                    line.strip().split(" ") for line in file.readlines()
+                ]
         except FileNotFoundError:
             symbols_file_path = os.path.join(project_root, "symbols.txt")
             with open(symbols_file_path, "w") as file:
@@ -55,20 +57,29 @@ class MonitorGieldowy(QWidget):
             print("File symbols.txt does not exist. Creating.")
 
     def _getSymbolFromInput(self):
-        symbol = self.symbolInput.text().upper()
-        if symbol and symbol not in self.symbolsList:
-            self.symbolsList.append(symbol)
-            try:
-                symbols_file_path = os.path.join(project_root, "symbols.txt")
-                with open(symbols_file_path, "a") as file:
-                    file.write(f"{symbol}\n")
-            except Exception as e:
-                print(f"Error during writing to file: {e}")
+        try:
+            input_text = self.symbolInput.text().upper()
+            if " " not in input_text:
+                print("Please enter symbol and alias (e.g., CDR.WA CDProjekt)")
+                return
             
-            self.symbolInput.clear()
-            self._updatePrices()
-        else:
-            print("Empty or already exist")
+            symbol, alias = input_text.split(" ", 1)
+        
+            if symbol and symbol not in [s[0] for s in self.symbolsList]:
+                self.symbolsList.append([symbol, alias])
+                try:
+                    symbols_file_path = os.path.join(project_root, "symbols.txt")
+                    with open(symbols_file_path, "a") as file:
+                        file.write(f"{symbol} {alias}\n")
+                except Exception as e:
+                    print(f"Error during writing to file: {e}")
+                
+                self.symbolInput.clear()
+                self._updatePrices()
+            else:
+                print("Empty or already exist")
+        except ValueError:
+            print("Please enter symbol and alias (e.g., CDR.WA CDProjekt)")
     
     def _updateCountdown(self):
         self.countdown_counter -= 1
@@ -91,13 +102,13 @@ class MonitorGieldowy(QWidget):
             return
             
         row = 0
-        for symbol in self.symbolsList:
+        for symbol, alias in self.symbolsList:
             data = getData(symbol)
             if data and data.get('currentPrice') is not None:
                 diff = data['currentPrice'] - data['lastClose']
                 percent = ((data['currentPrice'] / data["lastClose"]) * 100 - 100)
                 
-                label_text = f"<b>{symbol}</b>: {data['currentPrice']} {data.get('currency', 'no data')} | {diff:.2f} | {percent:.2f} %"
+                label_text = f"<b>{alias} ({symbol})</b>: {data['currentPrice']} {data.get('currency', 'no data')} | {diff:.2f} | {percent:.2f} %"
                 label = QLabel(label_text)
                 
                 if data['lastClose'] is not None:
@@ -113,7 +124,7 @@ class MonitorGieldowy(QWidget):
                 self.symbolsLayout.addWidget(label, row, 0, 1, 1, Qt.AlignmentFlag.AlignCenter)
                 row += 1
             else:
-                label = QLabel(f"<b>{symbol}</b>: No data")
+                label = QLabel(f"<b>{alias}({symbol})</b>: No data")
                 label.setStyleSheet("font-size: 16pt; font-weight: bold; color: gray;")
                 self.symbolsLayout.addWidget(label, row, 0, 1, 1, Qt.AlignmentFlag.AlignCenter)
                 row += 1
