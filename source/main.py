@@ -1,9 +1,14 @@
 import sys
+import os
 
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QGridLayout
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QIcon
-from source.gettingData import getData
+
+from gettingData import getData
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.join(script_dir, "..")
 
 class MonitorGieldowy(QWidget):
     
@@ -12,7 +17,8 @@ class MonitorGieldowy(QWidget):
     def __init__(self):
         super().__init__()
 
-        appIcon = QIcon("./Icons/appIcon.ico")
+        appIcon_path = os.path.join(project_root, "Icons", "appIcon.ico")
+        appIcon = QIcon(appIcon_path)
 
         self.setWindowIcon(appIcon)
         self.setWindowTitle("Market monitor")
@@ -39,10 +45,12 @@ class MonitorGieldowy(QWidget):
 
     def _getSymbolsFromFile(self):
         try:
-            with open("./symbols.txt", "r") as file:
+            symbols_file_path = os.path.join(project_root, "symbols.txt")
+            with open(symbols_file_path, "r") as file:
                 self.symbolsList = [line.strip() for line in file.readlines()]
         except FileNotFoundError:
-            with open("./symbols.txt", "w") as file:
+            symbols_file_path = os.path.join(project_root, "symbols.txt")
+            with open(symbols_file_path, "w") as file:
                 pass
             print("File symbols.txt does not exist. Creating.")
 
@@ -51,7 +59,8 @@ class MonitorGieldowy(QWidget):
         if symbol and symbol not in self.symbolsList:
             self.symbolsList.append(symbol)
             try:
-                with open("./symbols.txt", "a") as file:
+                symbols_file_path = os.path.join(project_root, "symbols.txt")
+                with open(symbols_file_path, "a") as file:
                     file.write(f"{symbol}\n")
             except Exception as e:
                 print(f"Error during writing to file: {e}")
@@ -108,7 +117,6 @@ class MonitorGieldowy(QWidget):
                 label.setStyleSheet("font-size: 16pt; font-weight: bold; color: gray;")
                 self.symbolsLayout.addWidget(label, row, 0, 1, 1, Qt.AlignmentFlag.AlignCenter)
                 row += 1
-
 
     def createInterface(self):
         mainLayout = QVBoxLayout()
