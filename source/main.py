@@ -63,26 +63,38 @@ class MonitorGieldowy(QWidget):
 
     def _getSymbolFromInput(self):
         try:
-            input_text = self.symbolInput.text().upper()
+            input_text = self.symbolInput.text().strip().upper()
+            if not input_text:
+                print("Input is empty.")
+                return
+
             if " " not in input_text:
                 print("Please enter symbol and alias (e.g., CDR.WA CDProjekt)")
                 return
             
             symbol, alias = input_text.split(" ", 1)
-        
-            if symbol and symbol not in [s[0] for s in self.symbolsList]:
+
+            if symbol in [s[0] for s in self.symbolsList]:
+                print(f"Symbol {symbol} already exists.")
+                return
+            
+            print(f"Checking if symbol {symbol} is valid...")
+            data = getData(symbol)
+
+            if data and data.get('currentPrice') is not None:
                 self.symbolsList.append([symbol, alias])
                 try:
                     symbols_file_path = os.path.join(project_root, "symbols.txt")
                     with open(symbols_file_path, "a") as file:
                         file.write(f"{symbol} {alias}\n")
+                    print(f"Symbol {symbol} added successfully.")
                 except Exception as e:
                     print(f"Error during writing to file: {e}")
                 
                 self.symbolInput.clear()
                 self._updatePrices()
             else:
-                print("Empty or already exist")
+                print(f"Symbol {symbol} does not exist or no data available.")
         except ValueError:
             print("Please enter symbol and alias (e.g., CDR.WA CDProjekt)")
 
@@ -133,12 +145,10 @@ class MonitorGieldowy(QWidget):
         for symbol, alias in self.symbolsList:
             data = getData(symbol)
 
-            # Create a horizontal layout for the entire item
             item_layout = QHBoxLayout()
             
-            # The label should be flexible
             label = QLabel()
-            label.setWordWrap(True) # Make sure the text wraps if it's too long
+            label.setWordWrap(True)
             label.setStyleSheet("font-size: 16pt; font-weight: bold;")
             
             if data and data.get('currentPrice') is not None:
@@ -161,7 +171,7 @@ class MonitorGieldowy(QWidget):
                 label.setText(f"<b>{alias}({symbol})</b>: No data")
                 label.setStyleSheet("font-size: 12pt; font-weight: bold; color: gray;")
 
-            item_layout.addWidget(label, 1) # Set a stretch factor of 1 for the label
+            item_layout.addWidget(label, 1)
 
             remove_button = QPushButton("Remove")
             remove_button.setFixedSize(60, 25)
@@ -173,7 +183,7 @@ class MonitorGieldowy(QWidget):
             self.symbolsLayout.addWidget(container_widget, row, 0, 1, 1, Qt.AlignmentFlag.AlignTop)
             row += 1
             
-        self.symbolsLayout.setSpacing(10) # Adjust spacing between rows
+        self.symbolsLayout.setSpacing(10)
 
     def createInterface(self):
         mainLayout = QVBoxLayout()
